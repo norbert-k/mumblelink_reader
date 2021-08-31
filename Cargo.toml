@@ -1,5 +1,6 @@
 [package]
 name = "mumblelink_reader"
+description = "Mumblelink reader for Windows & Unix based operating systems"
 version = "0.1.0"
 edition = "2018"
 license = "MIT"
