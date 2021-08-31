@@ -1,19 +1,26 @@
+use crate::mumble_link::{MumbleLinkReader, MumbleLinkData};
+use crate::error::MumbleLinkHandlerError;
+use std::io;
+use core::ptr;
+use std::ffi::CString;
+
 #[cfg(all(unix))]
 pub struct MumbleLinkHandler {
     fd: libc::c_int,
-    pub ptr: *mut c_void,
+    pub ptr: *mut libc::c_void,
 }
 
 #[cfg(all(unix))]
+
 lazy_static! {
     static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getpid())).unwrap() };
 }
-
 #[cfg(all(unix))]
+
 impl MumbleLinkHandler {
     pub fn new() -> io::Result<MumbleLinkHandler> {
         unsafe {
-            let fd = libc::shm_open(
+            let fd = libc::open(
                 MMAP_PATH.as_ptr(),
                 libc::O_RDWR,
                 libc::S_IRUSR | libc::S_IWUSR,
@@ -38,17 +45,6 @@ impl MumbleLinkHandler {
                 ptr: ptr,
             })
         }
-    }
-
-    pub fn read(&self) -> std::result::Result<MumbleLinkData, MumbleLinkHandlerError> {
-        if self.ptr.is_null() {
-            return Err(MumbleLinkHandlerError {
-                message: "Failed to read MumbleLink data",
-                os_error: false,
-            });
-        }
-        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut MumbleLinkRawData) };
-        Ok(linked_memory.to_mumble_link_data())
     }
 }
 

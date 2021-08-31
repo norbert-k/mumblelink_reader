@@ -9,7 +9,7 @@ use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
 use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
 use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
 
-use crate::mumble_link::{MumbleLinkData, MumbleLinkRawData};
+use crate::mumble_link::{MumbleLinkData, MumbleLinkRawData, MumbleLinkReader};
 use crate::error::MumbleLinkHandlerError;
 
 #[derive(Debug)]
@@ -49,17 +49,6 @@ impl MumbleLinkHandler {
             handle,
             ptr,
         })
-    }
-
-    pub fn read(&self) -> std::result::Result<MumbleLinkData, MumbleLinkHandlerError> {
-        if self.ptr.is_null() {
-            return Err(MumbleLinkHandlerError {
-                message: "Failed to read MumbleLink data",
-                os_error: false,
-            });
-        }
-        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut MumbleLinkRawData) };
-        Ok(linked_memory.to_mumble_link_data())
     }
 }
 

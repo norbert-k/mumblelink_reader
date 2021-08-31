@@ -11,6 +11,7 @@ use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
 use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
 
 use crate::error::MumbleLinkHandlerError;
+use crate::windows_mumble_link_handler::MumbleLinkHandler;
 
 fn wchar_t_to_string(src: &[wchar_t]) -> String {
     let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
@@ -111,5 +112,22 @@ impl MumbleLinkData {
 
     pub fn read_context<T>(&self, f: &dyn Fn([u8; 256]) -> T) -> T {
         f(self.context)
+    }
+}
+
+pub trait MumbleLinkReader {
+    fn read(&self) -> std::result::Result<MumbleLinkData, MumbleLinkHandlerError>;
+}
+
+impl MumbleLinkReader for MumbleLinkHandler {
+    fn read(&self) -> Result<MumbleLinkData, MumbleLinkHandlerError> {
+        if self.ptr.is_null() {
+            return Err(MumbleLinkHandlerError {
+                message: "Failed to read MumbleLink data",
+                os_error: false,
+            });
+        }
+        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut MumbleLinkRawData) };
+        Ok(linked_memory.to_mumble_link_data())
     }
 }

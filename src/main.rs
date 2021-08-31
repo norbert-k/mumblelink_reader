@@ -1,11 +1,14 @@
 use std::thread;
 use core::time;
 use crate::windows_mumble_link_handler::MumbleLinkHandler;
+use crate::mumble_link::MumbleLinkReader;
+use std::str::Utf8Error;
+use std::net::{SocketAddr, IpAddr};
 
-mod mumble_link;
-mod error;
-mod windows_mumble_link_handler;
-mod unix_mumble_link_handler;
+pub mod mumble_link;
+pub mod error;
+pub mod windows_mumble_link_handler;
+pub mod unix_mumble_link_handler;
 
 #[macro_use]
 extern crate lazy_static;
@@ -36,10 +39,7 @@ fn main() {
     let handler = MumbleLinkHandler::new().unwrap();
     loop {
         let linked_memory = handler.read().unwrap();
-        println!("{:?}", linked_memory.read_context::<GuildwarsContext>(&|context: [u8; 256]| {
-            let data: GuildwarsContext = unsafe { std::ptr::read(context.as_ptr() as *const _) };
-            return data;
-        }));
+        println!("{:?}", linked_memory.read_context_into_struct::<GuildwarsContext>().server_address);
         thread::sleep(time::Duration::from_millis(5000))
     }
 }
