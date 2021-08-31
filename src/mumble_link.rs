@@ -71,16 +71,49 @@ pub struct PositionImperial {
 
 #[derive(Copy, Debug)]
 #[repr(C)]
+struct MumbleLinkRawData {
+    ui_version: u32,
+    ui_tick: u32,
+    avatar: Position,
+    name: [wchar_t; 256],
+    camera: Position,
+    identity: [wchar_t; 256],
+    context_len: u32,
+    context: [u8; 256],
+    description: [wchar_t; 2048],
+}
+
+impl MumbleLinkRawData {
+    pub fn to_mumble_link_data(&self) -> MumbleLinkData {
+        MumbleLinkData {
+            ui_version: self.ui_version as i64,
+            ui_tick: self.ui_tick as i64,
+            avatar: self.avatar,
+            name: wchar_t_to_string(&self.name),
+            camera: self.camera,
+            identity: wchar_t_to_string(&self.identity),
+            context_len: self.context_len as i64,
+            context: self.context,
+            description: wchar_t_to_string(&self.description),
+        }
+    }
+}
+
+impl Clone for MumbleLinkRawData {
+    fn clone(&self) -> Self { *self }
+}
+
+#[derive(Debug)]
 pub struct MumbleLinkData {
-    pub ui_version: u32,
-    pub ui_tick: u32,
+    pub ui_version: i64,
+    pub ui_tick: i64,
     pub avatar: Position,
-    pub name: [wchar_t; 256],
+    pub name: String,
     pub camera: Position,
-    pub identity: [wchar_t; 256],
-    pub context_len: u32,
+    pub identity: String,
+    pub context_len: i64,
     pub context: [u8; 256],
-    pub description: [wchar_t; 2048],
+    pub description: String,
 }
 
 impl MumbleLinkData {
@@ -88,10 +121,6 @@ impl MumbleLinkData {
         let data: T = unsafe { std::ptr::read(self.context.as_ptr() as *const _) };
         return data;
     }
-}
-
-impl Clone for MumbleLinkData {
-    fn clone(&self) -> Self { *self }
 }
 
 #[derive(Debug)]
@@ -121,7 +150,7 @@ impl MumbleLinkHandler {
     #[cfg(all(windows))]
     pub fn new() -> io::Result<MumbleLinkHandler> {
         let mut handle: HANDLE = unsafe {
-            winapi::um::memoryapi::CreateFileMappingW(INVALID_HANDLE_VALUE, ptr::null_mut(), PAGE_READWRITE, 0, std::mem::size_of::<MumbleLinkData>() as u32, wide_lp_name.as_ptr())
+            winapi::um::memoryapi::CreateFileMappingW(INVALID_HANDLE_VALUE, ptr::null_mut(), PAGE_READWRITE, 0, std::mem::size_of::<MumbleLinkRawData>() as u32, wide_lp_name.as_ptr())
         };
         if handle.is_null() {
             handle = unsafe {
@@ -132,7 +161,7 @@ impl MumbleLinkHandler {
             }
         }
         let ptr: *mut c_void = unsafe {
-            winapi::um::memoryapi::MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, std::mem::size_of::<MumbleLinkData>()) as *mut c_void
+            winapi::um::memoryapi::MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, std::mem::size_of::<MumbleLinkRawData>()) as *mut c_void
         };
         if ptr.is_null() {
             unsafe { CloseHandle(handle); }
@@ -181,8 +210,8 @@ impl MumbleLinkHandler {
                 os_error: false,
             });
         }
-        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut MumbleLinkData) };
-        Ok(linked_memory)
+        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut MumbleLinkRawData) };
+        Ok(linked_memory.to_mumble_link_data())
     }
 }
 
