@@ -1,8 +1,11 @@
-use crate::mumble_link::MumbleLinkHandler;
 use std::thread;
 use core::time;
+use crate::windows_mumble_link_handler::MumbleLinkHandler;
 
 mod mumble_link;
+mod error;
+mod windows_mumble_link_handler;
+mod unix_mumble_link_handler;
 
 #[macro_use]
 extern crate lazy_static;

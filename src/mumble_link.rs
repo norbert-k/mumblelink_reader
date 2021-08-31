@@ -1,13 +1,16 @@
-use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
-use winapi::ctypes::{c_void, wchar_t};
-use std::io;
-use std::ffi::{OsStr};
-use std::os::windows::ffi::OsStrExt;
-use winapi::um::handleapi::{INVALID_HANDLE_VALUE, CloseHandle};
-use core::{ptr};
-use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
-use winapi::shared::minwindef::FALSE;
+use core::ptr;
+use std::ffi::OsStr;
 use std::fmt;
+use std::io;
+use std::os::windows::ffi::OsStrExt;
+
+use winapi::ctypes::{c_void, wchar_t};
+use winapi::shared::minwindef::FALSE;
+use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
+use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
+use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
+
+use crate::error::MumbleLinkHandlerError;
 
 fn wchar_t_to_string(src: &[wchar_t]) -> String {
     let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
@@ -19,19 +22,7 @@ fn convert_to_imperial(position: &[f32; 3]) -> [f32; 3] {
     for (i, elem) in position.iter().enumerate() {
         imperial_position[i] = elem * 39.3701;
     }
-    return imperial_position;
-}
-
-#[derive(Debug, Clone)]
-pub struct MumbleLinkHandlerError {
-    pub message: &'static str,
-    pub os_error: bool,
-}
-
-impl fmt::Display for MumbleLinkHandlerError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.message)
-    }
+    imperial_position
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -46,7 +37,7 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn to_imperial(&self) -> PositionImperial {
+    pub fn to_imperial(self) -> PositionImperial {
         PositionImperial {
             position: convert_to_imperial(&self.position),
             front: convert_to_imperial(&self.front),
@@ -68,7 +59,7 @@ pub struct PositionImperial {
 
 #[derive(Copy, Debug)]
 #[repr(C)]
-struct MumbleLinkRawData {
+pub struct MumbleLinkRawData {
     ui_version: u32,
     ui_tick: u32,
     avatar: Position,
@@ -81,7 +72,7 @@ struct MumbleLinkRawData {
 }
 
 impl MumbleLinkRawData {
-    pub fn to_mumble_link_data(&self) -> MumbleLinkData {
+    pub fn to_mumble_link_data(self) -> MumbleLinkData {
         MumbleLinkData {
             ui_version: self.ui_version as i64,
             ui_tick: self.ui_tick as i64,
@@ -115,125 +106,10 @@ pub struct MumbleLinkData {
 
 impl MumbleLinkData {
     pub fn read_context_into_struct<T>(&self) -> T {
-        let data: T = unsafe { std::ptr::read(self.context.as_ptr() as *const _) };
-        return data;
+        unsafe { std::ptr::read(self.context.as_ptr() as *const _) }
     }
 
     pub fn read_context<T>(&self, f: &dyn Fn([u8; 256]) -> T) -> T {
         f(self.context)
-    }
-}
-
-#[derive(Debug)]
-#[cfg(all(windows))]
-pub struct MumbleLinkHandler {
-    handle: HANDLE,
-    pub ptr: *mut c_void,
-}
-
-#[cfg(all(unix))]
-pub struct MumbleLinkHandler {
-    fd: libc::c_int,
-    pub ptr: *mut c_void,
-}
-
-#[cfg(all(windows))]
-lazy_static! {
-    static ref WIDE_LP_NAME: Vec<u16> = OsStr::new("MumbleLink").encode_wide().chain(Some(0)).collect::<Vec<_>>();
-}
-
-#[cfg(all(unix))]
-lazy_static! {
-    static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getpid())).unwrap() };
-}
-
-
-
-impl MumbleLinkHandler {
-    #[cfg(all(windows))]
-    pub fn new() -> io::Result<MumbleLinkHandler> {
-        let mut handle: HANDLE = unsafe {
-            winapi::um::memoryapi::CreateFileMappingW(INVALID_HANDLE_VALUE, ptr::null_mut(), PAGE_READWRITE, 0, std::mem::size_of::<MumbleLinkRawData>() as u32, WIDE_LP_NAME.as_ptr())
-        };
-        if handle.is_null() {
-            handle = unsafe {
-                winapi::um::memoryapi::OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, WIDE_LP_NAME.as_ptr())
-            };
-            if handle.is_null() {
-                return Err(io::Error::last_os_error());
-            }
-        }
-        let ptr: *mut c_void = unsafe {
-            winapi::um::memoryapi::MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, std::mem::size_of::<MumbleLinkRawData>()) as *mut c_void
-        };
-        if ptr.is_null() {
-            unsafe { CloseHandle(handle); }
-            return Err(io::Error::last_os_error());
-        }
-        Ok(MumbleLinkHandler {
-            handle,
-            ptr,
-        })
-    }
-
-    #[cfg(all(unix))]
-    pub fn new() -> io::Result<MumbleLinkHandler> {
-        unsafe {
-            let fd = libc::shm_open(
-                MMAP_PATH.as_ptr(),
-                libc::O_RDWR,
-                libc::S_IRUSR | libc::S_IWUSR,
-            );
-            if fd < 0 {
-                return Err(io::Error::last_os_error());
-            }
-            let ptr = libc::mmap(
-                ptr::null_mut(),
-                std::mem::size_of::<MumbleLinkData>(),
-                libc::PROT_READ | libc::PROT_WRITE,
-                libc::MAP_SHARED,
-                fd,
-                0,
-            );
-            if ptr as isize == -1 {
-                libc::close(fd);
-                return Err(io::Error::last_os_error());
-            }
-            Ok(MumbleLinkHandler {
-                fd: fd,
-                ptr: ptr,
-            })
-        }
-    }
-
-    pub fn read(&self) -> std::result::Result<MumbleLinkData, MumbleLinkHandlerError> {
-        if self.ptr.is_null() {
-            return Err(MumbleLinkHandlerError {
-                message: "Failed to read MumbleLink data",
-                os_error: false,
-            });
-        }
-        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut MumbleLinkRawData) };
-        Ok(linked_memory.to_mumble_link_data())
-    }
-}
-
-#[cfg(all(windows))]
-impl Drop for MumbleLinkHandler {
-    fn drop(&mut self) {
-        unsafe {
-            CloseHandle(self.handle);
-            self.ptr = ptr::null_mut()
-        }
-    }
-}
-
-#[cfg(all(unix))]
-impl Drop for MumbleLinkHandler {
-    fn drop(&mut self) {
-        unsafe {
-            libc::close(self.fd);
-            self.ptr = ptr::null_mut()
-        }
     }
 }
