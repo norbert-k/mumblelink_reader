@@ -33,7 +33,10 @@ fn main() {
     let handler = MumbleLinkHandler::new().unwrap();
     loop {
         let linked_memory = handler.read().unwrap();
-        println!("{:?}", linked_memory.read_context::<GuildwarsContext>());
+        println!("{:?}", linked_memory.read_context::<GuildwarsContext>(&|context: [u8; 256]| {
+            let data: GuildwarsContext = unsafe { std::ptr::read(context.as_ptr() as *const _) };
+            return data;
+        }));
         thread::sleep(time::Duration::from_millis(5000))
     }
 }

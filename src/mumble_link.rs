@@ -1,13 +1,11 @@
 use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
 use winapi::ctypes::{c_void, wchar_t};
 use std::io;
-use std::ffi::{OsStr, CString};
+use std::ffi::{OsStr};
 use std::os::windows::ffi::OsStrExt;
 use winapi::um::handleapi::{INVALID_HANDLE_VALUE, CloseHandle};
-use core::{ptr, mem};
+use core::{ptr};
 use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
-use std::ptr::null;
-use std::io::{ErrorKind, Error};
 use winapi::shared::minwindef::FALSE;
 use std::fmt;
 
@@ -48,7 +46,6 @@ pub struct Position {
 }
 
 impl Position {
-    #![feature(array_map)]
     pub fn to_imperial(&self) -> PositionImperial {
         PositionImperial {
             position: convert_to_imperial(&self.position),
@@ -117,9 +114,13 @@ pub struct MumbleLinkData {
 }
 
 impl MumbleLinkData {
-    pub fn read_context<T>(&self) -> T {
+    pub fn read_context_into_struct<T>(&self) -> T {
         let data: T = unsafe { std::ptr::read(self.context.as_ptr() as *const _) };
         return data;
+    }
+
+    pub fn read_context<T>(&self, f: &dyn Fn([u8; 256]) -> T) -> T {
+        f(self.context)
     }
 }
 
@@ -138,23 +139,25 @@ pub struct MumbleLinkHandler {
 
 #[cfg(all(windows))]
 lazy_static! {
-    static ref wide_lp_name: Vec<u16> = OsStr::new("MumbleLink").encode_wide().chain(Some(0)).collect::<Vec<_>>();
+    static ref WIDE_LP_NAME: Vec<u16> = OsStr::new("MumbleLink").encode_wide().chain(Some(0)).collect::<Vec<_>>();
 }
 
 #[cfg(all(unix))]
 lazy_static! {
-    static ref mmap_path: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getpid())).unwrap() };
+    static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getpid())).unwrap() };
 }
+
+
 
 impl MumbleLinkHandler {
     #[cfg(all(windows))]
     pub fn new() -> io::Result<MumbleLinkHandler> {
         let mut handle: HANDLE = unsafe {
-            winapi::um::memoryapi::CreateFileMappingW(INVALID_HANDLE_VALUE, ptr::null_mut(), PAGE_READWRITE, 0, std::mem::size_of::<MumbleLinkRawData>() as u32, wide_lp_name.as_ptr())
+            winapi::um::memoryapi::CreateFileMappingW(INVALID_HANDLE_VALUE, ptr::null_mut(), PAGE_READWRITE, 0, std::mem::size_of::<MumbleLinkRawData>() as u32, WIDE_LP_NAME.as_ptr())
         };
         if handle.is_null() {
             handle = unsafe {
-                winapi::um::memoryapi::OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, wide_lp_name.as_ptr())
+                winapi::um::memoryapi::OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, WIDE_LP_NAME.as_ptr())
             };
             if handle.is_null() {
                 return Err(io::Error::last_os_error());
@@ -177,7 +180,7 @@ impl MumbleLinkHandler {
     pub fn new() -> io::Result<MumbleLinkHandler> {
         unsafe {
             let fd = libc::shm_open(
-                mmap_path.as_ptr(),
+                MMAP_PATH.as_ptr(),
                 libc::O_RDWR,
                 libc::S_IRUSR | libc::S_IWUSR,
             );
