@@ -3,8 +3,9 @@ name = "mumblelink_reader"
 version = "0.1.0"
 edition = "2018"
 license = "MIT"
-license-file = "LICENSE.txt"
+license-file = "LICENSE"
 keywords = ["mumble", "mumblelink", "guildwars", "guildwars2", "unsafe"]
+repository = "https://github.com/norbert-k/mumblelink_gw2"
 
 [lib]
 name = "mumblelink_reader"
