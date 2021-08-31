@@ -1,5 +1,5 @@
 [package]
-name = "mumblelink_gw2"
+name = "mumblelink_reader"
 version = "0.1.0"
 edition = "2018"
 

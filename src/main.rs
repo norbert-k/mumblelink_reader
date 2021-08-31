@@ -1,14 +1,15 @@
 use std::thread;
 use core::time;
-use crate::windows_mumble_link_handler::MumbleLinkHandler;
-use crate::mumble_link::MumbleLinkReader;
+use mumblelink_reader::mumble_link::MumbleLinkReader;
 use std::str::Utf8Error;
 use std::net::{SocketAddr, IpAddr};
+use mumblelink_reader::mumble_link_handler::MumbleLinkHandler;
 
 pub mod mumble_link;
 pub mod error;
-pub mod windows_mumble_link_handler;
-pub mod unix_mumble_link_handler;
+#[cfg_attr(windows, path="windows_mumble_link_handler.rs")]
+#[cfg_attr(unix, path="unix_mumble_link_handler.rs")]
+pub mod mumble_link_handler;
 
 #[macro_use]
 extern crate lazy_static;

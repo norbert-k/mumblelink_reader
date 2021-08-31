@@ -11,7 +11,7 @@ use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
 use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
 
 use crate::error::MumbleLinkHandlerError;
-use crate::windows_mumble_link_handler::MumbleLinkHandler;
+use crate::mumble_link_handler::MumbleLinkHandler;
 
 fn wchar_t_to_string(src: &[wchar_t]) -> String {
     let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
