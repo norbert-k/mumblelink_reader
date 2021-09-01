@@ -2,6 +2,10 @@
 
 ## Reading data from MumbleLink
 ```rust
+use mumblelink_reader::mumble_link_handler::MumbleLinkHandler;
+use mumblelink_reader::mumble_link::MumbleLinkReader;
+use std::{thread, time};
+
 fn main() {
     let handler = MumbleLinkHandler::new().unwrap();
     loop {
@@ -14,6 +18,10 @@ fn main() {
 
 ## Reading data from context (eg: Guildwars2)
 ```rust
+use mumblelink_reader::mumble_link_handler::MumbleLinkHandler;
+use mumblelink_reader::mumble_link::{MumbleLinkReader, MumbleLinkDataReader};
+use std::{thread, time};
+
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 struct GuildwarsContext {
