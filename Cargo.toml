@@ -1,25 +1,22 @@
 [package]
 name = "mumblelink_reader"
 description = "Mumblelink reader for Windows & Unix based operating systems"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
 license = "MIT"
 license-file = "LICENSE"
-keywords = ["mumble", "mumblelink", "guildwars", "guildwars2", "unsafe"]
+keywords = ["mumble", "mumblelink", "guildwars", "guildwars2", "unsafe", "game"]
 repository = "https://github.com/norbert-k/mumblelink_gw2"
 
 [lib]
 name = "mumblelink_reader"
 path = "src/lib.rs"
 
-[[bin]]
-name = "mumblelink_reader"
-path = "src/main.rs"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 libc = "0.2.101"
 lazy_static = "1.4.0"
+thiserror = "1.0"
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["memoryapi", "winnt", "minwindef", "handleapi"] }

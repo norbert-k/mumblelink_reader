@@ -26,15 +26,19 @@ fn convert_to_imperial(position: &[f32; 3]) -> [f32; 3] {
     imperial_position
 }
 
+/// Three dimensional Vector
+pub type Vector3D = [f32; 3];
+
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
+/// Character position in Left hand coordinate system (in SI base units: meters)
 pub struct Position {
     /// The character's position in space (in meters).
-    pub position: [f32; 3],
+    pub position: Vector3D,
     /// A unit vector pointing out of the character's eyes (in meters).
-    pub front: [f32; 3],
+    pub front: Vector3D,
     /// A unit vector pointing out of the top of the character's head (in meters).
-    pub top: [f32; 3],
+    pub top: Vector3D,
 }
 
 impl Position {
@@ -49,18 +53,20 @@ impl Position {
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
+/// Character position in Left hand coordinate system (in imperial units: inches)
 pub struct PositionImperial {
     /// The character's position in space (in inches).
-    pub position: [f32; 3],
+    pub position: Vector3D,
     /// A unit vector pointing out of the character's eyes (in inches).
-    pub front: [f32; 3],
+    pub front: Vector3D,
     /// A unit vector pointing out of the top of the character's head (in inches).
-    pub top: [f32; 3],
+    pub top: Vector3D,
 }
 
 #[derive(Copy, Debug)]
 #[repr(C)]
-pub struct MumbleLinkRawData {
+/// MumbleLink data in repr(C) format
+pub struct CMumbleLinkData {
     ui_version: u32,
     ui_tick: u32,
     avatar: Position,
@@ -72,7 +78,7 @@ pub struct MumbleLinkRawData {
     description: [wchar_t; 2048],
 }
 
-impl MumbleLinkRawData {
+impl CMumbleLinkData {
     pub fn to_mumble_link_data(self) -> MumbleLinkData {
         MumbleLinkData {
             ui_version: self.ui_version as i64,
@@ -88,11 +94,12 @@ impl MumbleLinkRawData {
     }
 }
 
-impl Clone for MumbleLinkRawData {
+impl Clone for CMumbleLinkData {
     fn clone(&self) -> Self { *self }
 }
 
 #[derive(Debug)]
+/// MumbleLink data
 pub struct MumbleLinkData {
     pub ui_version: i64,
     pub ui_tick: i64,
@@ -105,29 +112,61 @@ pub struct MumbleLinkData {
     pub description: String,
 }
 
-impl MumbleLinkData {
-    pub fn read_context_into_struct<T>(&self) -> T {
+/// MumbleLink context reading
+pub trait MumbleLinkDataReader {
+    /// Read MumbleLinkData context into *T* struct from `[u8; 256]` representation
+    fn read_context_into_struct<T>(&self) -> T;
+    /// Transform MumbleLinkData context into T from `[u8; 256]` representation
+    fn read_context<T>(&self, f: &dyn Fn([u8; 256]) -> T) -> T;
+}
+
+impl MumbleLinkDataReader for MumbleLinkData {
+    /// Read MumbleLinkData context into *T* struct from `[u8; 256]` representation
+    fn read_context_into_struct<T>(&self) -> T {
         unsafe { std::ptr::read(self.context.as_ptr() as *const _) }
     }
 
-    pub fn read_context<T>(&self, f: &dyn Fn([u8; 256]) -> T) -> T {
+    /// Transform MumbleLinkData context into T from `[u8; 256]` representation
+    fn read_context<T>(&self, f: &dyn Fn([u8; 256]) -> T) -> T {
         f(self.context)
     }
 }
 
+impl MumbleLinkDataReader for CMumbleLinkData {
+    /// Read MumbleLinkData context into *T* struct from `[u8; 256]` representation
+    fn read_context_into_struct<T>(&self) -> T {
+        unsafe { std::ptr::read(self.context.as_ptr() as *const _) }
+    }
+
+    /// Transform MumbleLinkData context into T from `[u8; 256]` representation
+    fn read_context<T>(&self, f: &dyn Fn([u8; 256]) -> T) -> T {
+        f(self.context)
+    }
+}
+
+/// MumbleLink data reader
 pub trait MumbleLinkReader {
+    /// Read into regular struct: *MumbleLinkData*
     fn read(&self) -> std::result::Result<MumbleLinkData, MumbleLinkHandlerError>;
+    /// Read into repr(C) struct: *CMumbleLinkData*
+    fn read_c(&self) -> std::result::Result<CMumbleLinkData, MumbleLinkHandlerError>;
 }
 
 impl MumbleLinkReader for MumbleLinkHandler {
+    /// Read into regular struct: *MumbleLinkData*
     fn read(&self) -> Result<MumbleLinkData, MumbleLinkHandlerError> {
         if self.ptr.is_null() {
-            return Err(MumbleLinkHandlerError {
-                message: "Failed to read MumbleLink data",
-                os_error: false,
-            });
+            return Err(MumbleLinkHandlerError::UnableToRead);
         }
-        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut MumbleLinkRawData) };
+        let linked_memory = unsafe { ptr::read_unaligned(self.ptr as *mut CMumbleLinkData) };
         Ok(linked_memory.to_mumble_link_data())
+    }
+
+    /// Read into repr(C) struct: *CMumbleLinkData*
+    fn read_c(&self) -> Result<CMumbleLinkData, MumbleLinkHandlerError> {
+        if self.ptr.is_null() {
+            return Err(MumbleLinkHandlerError::UnableToRead);
+        }
+        Ok(unsafe { ptr::read_unaligned(self.ptr as *mut CMumbleLinkData) })
     }
 }
