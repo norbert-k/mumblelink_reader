@@ -2,9 +2,7 @@ use core::ptr;
 use std::ffi::OsStr;
 use std::fmt;
 use std::io;
-use std::os::windows::ffi::OsStrExt;
 
-use winapi::ctypes::{c_void, wchar_t};
 use winapi::shared::minwindef::FALSE;
 use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
 use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
@@ -12,6 +10,7 @@ use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
 
 use crate::error::MumbleLinkHandlerError;
 use crate::mumble_link_handler::MumbleLinkHandler;
+use libc::wchar_t;
 
 fn wchar_t_to_string(src: &[wchar_t]) -> String {
     let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
