@@ -3,9 +3,8 @@ name = "mumblelink_reader"
 description = "Mumblelink reader for Windows & Unix based operating systems"
 version = "0.2.0"
 edition = "2018"
-license = "MIT"
 license-file = "LICENSE"
-keywords = ["mumble", "mumblelink", "guildwars", "guildwars2", "unsafe", "game"]
+keywords = ["mumble", "mumblelink", "unsafe", "game"]
 repository = "https://github.com/norbert-k/mumblelink_reader"
 
 [lib]
