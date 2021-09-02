@@ -78,15 +78,15 @@ pub struct PositionImperial {
 #[repr(C)]
 /// MumbleLink data in repr(C) format
 pub struct CMumbleLinkData {
-    ui_version: u32,
-    ui_tick: u32,
-    avatar: Position,
-    name: [wchar_t; 256],
-    camera: Position,
-    identity: [wchar_t; 256],
-    context_len: u32,
-    context: [u8; 256],
-    description: [wchar_t; 2048],
+    pub ui_version: u32,
+    pub ui_tick: u32,
+    pub avatar: Position,
+    pub name: [wchar_t; 256],
+    pub camera: Position,
+    pub identity: [wchar_t; 256],
+    pub context_len: u32,
+    pub context: [u8; 256],
+    pub description: [wchar_t; 2048],
 }
 
 impl CMumbleLinkData {
