@@ -21,13 +21,13 @@ impl MumbleLinkHandler {
             let mut fd = libc::shm_open(
                 MMAP_PATH.as_ptr(),
                 libc::O_RDWR,
-                libc::S_IRUSR | libc::S_IWUSR,
+                libc::S_IRUSR as c_uint | libc::S_IWUSR as c_uint,
             );
             if fd < 0 {
                 fd = libc::shm_open(
                     MMAP_PATH.as_ptr(),
                     libc::O_CREAT,
-                    libc::S_IRUSR | libc::S_IWUSR,
+                    libc::S_IRUSR as c_uint | libc::S_IWUSR as c_uint,
                 );
                 let trunc: i32 = unsafe{libc::ftruncate(fd, MUMBLE_LINK_STRUCT_SIZE)};
                 if trunc < 0 || fd < 0 {
