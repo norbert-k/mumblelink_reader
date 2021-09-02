@@ -3,18 +3,30 @@ use std::ffi::OsStr;
 use std::fmt;
 use std::io;
 
-use winapi::shared::minwindef::FALSE;
-use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
-use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
+#[cfg(all(windows))]
+use winapi::{
+    shared::minwindef::FALSE,
+    um::{
+        handleapi::{CloseHandle, INVALID_HANDLE_VALUE},
+        memoryapi::FILE_MAP_ALL_ACCESS,
+        winnt::{HANDLE, PAGE_READWRITE}
+    }
+};
 
 use crate::error::MumbleLinkHandlerError;
 use crate::mumble_link_handler::MumbleLinkHandler;
 use libc::wchar_t;
 
+#[cfg(all(windows))]
 fn wchar_t_to_string(src: &[wchar_t]) -> String {
     let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
     String::from_utf16_lossy(&src[..zero])
+}
+
+#[cfg(all(unix))]
+fn wchar_t_to_string(src: &[wchar_t]) -> String {
+    let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
+    String::from_utf8(src[..zero].to_vec().iter_mut().map(|x| *x as u8).collect()).unwrap()
 }
 
 fn convert_to_imperial(position: &[f32; 3]) -> [f32; 3] {
