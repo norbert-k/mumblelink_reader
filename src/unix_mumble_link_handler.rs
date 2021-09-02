@@ -15,11 +15,10 @@ lazy_static! {
     static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getpid())).unwrap() };
 }
 
-#[cfg(all(unix))]
 impl MumbleLinkHandler {
     pub fn new() -> std::result::Result<MumbleLinkHandler, MumbleLinkHandlerError> {
         unsafe {
-            let fd = libc::open(
+            let fd = libc::shm_open(
                 MMAP_PATH.as_ptr(),
                 libc::O_RDWR,
                 libc::S_IRUSR | libc::S_IWUSR,
