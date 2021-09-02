@@ -10,9 +10,9 @@ pub struct MumbleLinkHandler {
     pub ptr: *mut libc::c_void,
 }
 
-#[cfg(all(unix))]
+
 lazy_static! {
-    static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getuid())).unwrap() };
+    static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getuid())).expect("Failed to create MMAP_PATH") };
 }
 
 impl MumbleLinkHandler {
