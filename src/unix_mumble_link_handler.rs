@@ -22,8 +22,8 @@ impl MumbleLinkHandler {
         unsafe {
             let fd = libc::shm_open(
                 MMAP_PATH.as_ptr(),
-                libc::O_CREAT | libc::O_RDWR,
-                libc::S_IRUSR | libc::S_IWUSR as c_uint,
+                libc::O_CREAT,
+                libc::S_IRUSR | libc::S_IWUSR,
             );
             if fd < 0 {
                 println!("shm_open failed");
