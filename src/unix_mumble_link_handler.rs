@@ -12,21 +12,17 @@ pub struct MumbleLinkHandler {
 }
 
 #[cfg(all(unix))]
-lazy_static! {
-    static ref MMAP_PATH: CString = CString::new(format!("/MumbleLink.{}", unsafe{libc::getuid()})).expect("Failed to create MMAP_PATH");
-}
-
-#[cfg(all(unix))]
 impl MumbleLinkHandler {
     pub fn new() -> std::result::Result<MumbleLinkHandler, MumbleLinkHandlerError> {
+        let uid = unsafe { libc::getuid() };
+        let MMAP_PATH: CString = CString::new(format!("/MumbleLink.{}", uid)).expect("Failed to create MMAP_PATH");
         unsafe {
             let fd = libc::shm_open(
                 MMAP_PATH.as_ptr(),
-                libc::O_CREAT,
+                libc::O_RDWR | libc::O_CREAT,
                 libc::S_IRUSR | libc::S_IWUSR,
             );
             if fd < 0 {
-                println!("shm_open failed");
                 return Err(MumbleLinkHandlerError::OSError(io::Error::last_os_error()));
             }
             let ptr = libc::mmap(
@@ -38,7 +34,6 @@ impl MumbleLinkHandler {
                 0,
             );
             if ptr as isize == -1 {
-                println!("mmap failed");
                 libc::close(fd);
                 return Err(MumbleLinkHandlerError::OSError(io::Error::last_os_error()));
             }
