@@ -12,7 +12,7 @@ pub struct MumbleLinkHandler {
 
 #[cfg(all(unix))]
 lazy_static! {
-    static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getpid())).unwrap() };
+    static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getuid())).unwrap() };
 }
 
 impl MumbleLinkHandler {
