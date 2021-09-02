@@ -3,6 +3,7 @@ use crate::error::MumbleLinkHandlerError;
 use std::io;
 use core::ptr;
 use std::ffi::CString;
+use std::os::raw::c_uint;
 
 #[cfg(all(unix))]
 pub struct MumbleLinkHandler {
@@ -12,7 +13,7 @@ pub struct MumbleLinkHandler {
 
 #[cfg(all(unix))]
 lazy_static! {
-    static ref MMAP_PATH: CString = unsafe {CString::new(format!("/MumbleLink.{}", libc::getuid())).expect("Failed to create MMAP_PATH") };
+    static ref MMAP_PATH: CString = CString::new(format!("/MumbleLink.{}", unsafe{libc::getuid()})).expect("Failed to create MMAP_PATH");
 }
 
 #[cfg(all(unix))]
@@ -21,8 +22,8 @@ impl MumbleLinkHandler {
         unsafe {
             let fd = libc::shm_open(
                 MMAP_PATH.as_ptr(),
-                libc::O_RDWR,
-                libc::S_IRUSR | libc::S_IWUSR,
+                libc::O_CREAT | libc::O_RDWR,
+                libc::S_IRUSR | libc::S_IWUSR as c_uint,
             );
             if fd < 0 {
                 println!("shm_open failed");
