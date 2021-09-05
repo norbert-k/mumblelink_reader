@@ -16,7 +16,7 @@ checksum = "3cb00336871be5ed2c8ed44b60ae9959dc5b9f08539422ed43f09e34ecaeba21"
 
 [[package]]
 name = "mumblelink_reader"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "lazy_static",
  "libc",

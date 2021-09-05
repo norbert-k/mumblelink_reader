@@ -20,7 +20,7 @@ use libc::wchar_t;
 #[cfg(all(windows))]
 fn wchar_t_to_string(src: &[wchar_t]) -> String {
     let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
-    String::from_utf16_lossy(&src[..zero])
+     String::from_utf16_lossy(&src[..zero])
 }
 
 #[cfg(all(unix))]
@@ -109,7 +109,7 @@ impl Clone for CMumbleLinkData {
     fn clone(&self) -> Self { *self }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// MumbleLink data
 pub struct MumbleLinkData {
     pub ui_version: i64,
