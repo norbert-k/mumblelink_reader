@@ -54,7 +54,7 @@ impl MumbleLinkHandler {
 
     /// Create new MumbleLinkHandler
     pub fn new() -> std::result::Result<MumbleLinkHandler, MumbleLinkHandlerError> {
-        Self::create("MumbleLink")
+        Self::with_name("MumbleLink")
     }
 }
 
