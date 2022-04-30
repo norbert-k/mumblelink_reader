@@ -1,4 +1,3 @@
-use core::fmt;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
