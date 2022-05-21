@@ -9,8 +9,8 @@ use winapi::{
     um::{
         handleapi::{CloseHandle, INVALID_HANDLE_VALUE},
         memoryapi::FILE_MAP_ALL_ACCESS,
-        winnt::{HANDLE, PAGE_READWRITE}
-    }
+        winnt::{HANDLE, PAGE_READWRITE},
+    },
 };
 
 use crate::error::MumbleLinkHandlerError;
@@ -20,7 +20,7 @@ use libc::wchar_t;
 #[cfg(all(windows))]
 fn wchar_t_to_string(src: &[wchar_t]) -> String {
     let zero = src.iter().position(|&c| c == 0).unwrap_or(src.len());
-     String::from_utf16_lossy(&src[..zero])
+    String::from_utf16_lossy(&src[..zero])
 }
 
 #[cfg(all(unix))]
@@ -106,7 +106,9 @@ impl CMumbleLinkData {
 }
 
 impl Clone for CMumbleLinkData {
-    fn clone(&self) -> Self { *self }
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -3,15 +3,14 @@ use std::ffi::OsStr;
 use std::io;
 use std::os::windows::ffi::OsStrExt;
 
-use winapi::ctypes::{c_void};
+use winapi::ctypes::c_void;
 use winapi::shared::minwindef::FALSE;
 use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
 use winapi::um::memoryapi::FILE_MAP_ALL_ACCESS;
 use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
 
-use crate::mumble_link::{MumbleLinkData, CMumbleLinkData, MumbleLinkReader};
 use crate::error::MumbleLinkHandlerError;
-use std::error::Error;
+use crate::mumble_link::CMumbleLinkData;
 
 #[derive(Debug)]
 #[cfg(all(windows))]
@@ -25,37 +24,65 @@ pub struct MumbleLinkHandler {
 
 #[cfg(all(windows))]
 lazy_static! {
-    static ref WIDE_LP_NAME: Vec<u16> = OsStr::new("MumbleLink").encode_wide().chain(Some(0)).collect::<Vec<_>>();
+    static ref WIDE_LP_NAME: Vec<u16> = OsStr::new("MumbleLink")
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
     static ref MUMBLE_LINK_STRUCT_SIZE: usize = std::mem::size_of::<CMumbleLinkData>() as usize;
 }
 
 #[cfg(all(windows))]
 impl MumbleLinkHandler {
-    /// Create new MumbleLinkHandler
-    pub fn new() -> std::result::Result<MumbleLinkHandler, MumbleLinkHandlerError> {
+    fn create(path: &[u16]) -> std::result::Result<MumbleLinkHandler, MumbleLinkHandlerError> {
         // Try to open MumbleLink with OpenFileMappingW, if it fails to acquire handle then execute CreateFileMappingW to create it.
         let mut handle: HANDLE = unsafe {
-            winapi::um::memoryapi::OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, WIDE_LP_NAME.as_ptr())
+            winapi::um::memoryapi::OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, path.as_ptr())
         };
         if handle.is_null() {
             handle = unsafe {
-                winapi::um::memoryapi::CreateFileMappingW(INVALID_HANDLE_VALUE, ptr::null_mut(), PAGE_READWRITE, 0, *MUMBLE_LINK_STRUCT_SIZE as u32, WIDE_LP_NAME.as_ptr())
+                winapi::um::memoryapi::CreateFileMappingW(
+                    INVALID_HANDLE_VALUE,
+                    ptr::null_mut(),
+                    PAGE_READWRITE,
+                    0,
+                    *MUMBLE_LINK_STRUCT_SIZE as u32,
+                    WIDE_LP_NAME.as_ptr(),
+                )
             };
             if handle.is_null() {
                 return Err(MumbleLinkHandlerError::OSError(io::Error::last_os_error()));
             }
         }
         let ptr: *mut c_void = unsafe {
-            winapi::um::memoryapi::MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, *MUMBLE_LINK_STRUCT_SIZE) as *mut c_void
+            winapi::um::memoryapi::MapViewOfFile(
+                handle,
+                FILE_MAP_ALL_ACCESS,
+                0,
+                0,
+                *MUMBLE_LINK_STRUCT_SIZE,
+            ) as *mut c_void
         };
         if ptr.is_null() {
-            unsafe { CloseHandle(handle); }
+            unsafe {
+                CloseHandle(handle);
+            }
             return Err(MumbleLinkHandlerError::OSError(io::Error::last_os_error()));
         }
-        Ok(MumbleLinkHandler {
-            handle,
-            ptr,
-        })
+        Ok(MumbleLinkHandler { handle, ptr })
+    }
+
+    /// Create new MumbleLinkHandler
+    pub fn new() -> std::result::Result<MumbleLinkHandler, MumbleLinkHandlerError> {
+        Self::create(WIDE_LP_NAME.as_slice())
+    }
+
+    /// Create new MumbleLinkHandler with specified name
+    pub fn with_name(name: &str) -> std::result::Result<MumbleLinkHandler, MumbleLinkHandlerError> {
+        let name = OsStr::new(name)
+            .encode_wide()
+            .chain(Some(0))
+            .collect::<Vec<_>>();
+        Self::create(name.as_slice())
     }
 }
 
